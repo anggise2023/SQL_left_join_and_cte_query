@@ -53,7 +53,162 @@ dataset terdiri dari 5 data yaitu:
 gunakan prefix untuk mempermudah penulisan alias. di bawah ini join antara order dengan custumer.
 
 kita akan join data Customer dan Order sebagai berikut:
-![](gambar/leftjoin.png)
+```sql
+SELECT
+  o.order_id,
+  o.customer_id,
+  o.postal_code,
+  b.customer_name,
+  b.segmen,
+  o.product_id,
+  o.sales,
+  o.quantity,
+  o.discount,
+  o.profit
+FROM `werehouse.order` AS o
+  LEFT JOIN `werehouse.customer` AS b ON o.customer_id = b.customer_id;
+```
 
 output:
 ![](gambar/output_left_join1.png)
+
+dalam query di bawah akan langsung join seluruh dataset sebsagi berikut:
+```sql
+select
+  o.order_id,
+  s.order_date,
+  s.ship_mode,
+  s.ship_mode,
+  o.customer_id,
+  o.postal_code,
+  c.customer_name,
+  c.segmen,
+  r.country,
+  r.city,
+  r.state,
+  r.region,
+  o.product_id,
+  p.Category,
+  p.Sub_category,
+  p.Product_Name,
+  o.sales,
+  o.quantity,
+  o.discount,
+  o.profit
+from `werehouse.order` as o
+  left join `werehouse.customer`as c on o.customer_id=c.customer_id
+  left join `werehouse.region` as r on o.postal_code=r.postal_code
+  left join `werehouse.product` as p on o.product_id=p.Product_ID
+  left join `werehouse.shipment` as s on o.order_id=s.order_id;
+```
+
+Query SQL tersebut mengekstraksi informasi pesanan dari sebuah warehouse dengan menggabungkan beberapa tabel melalui operasi join. Ini mencakup data pesanan, informasi pelanggan, lokasi geografis pesanan, detail produk, dan informasi pengiriman. Hasilnya adalah dataset yang kaya informasi yang dapat digunakan untuk analisis lebih lanjut.
+
+## CTE
+
+```sql
+-- table yang sudah di bentuk ingin di gunakan makan bisa disederhanakan dengan menggunakan CTE
+-- CTE :Common Table Expresion, dengan menggunakan WITH
+
+with complete as -- blok pembukan untuk CTE
+(select
+  o.order_id,
+  s.order_date,
+  s.ship_mode,
+  s.ship_mode,
+  o.customer_id,
+  o.postal_code,
+  c.customer_name,
+  c.segmen,
+  r.country,
+  r.city,
+  r.state,
+  r.region,
+  o.product_id,
+  p.Category,
+  p.Sub_category,
+  p.Product_Name,
+  o.sales,
+  o.quantity,
+  o.discount,
+  o.profit
+from `werehouse.order` as o
+  left join `werehouse.customer`as c on o.customer_id=c.customer_id
+  left join `werehouse.region` as r on o.postal_code=r.postal_code
+  left join `werehouse.product` as p on o.product_id=p.Product_ID
+  left join `werehouse.shipment` as s on o.order_id=s.order_id)
+
+, revanue as
+(select
+  city,
+  sum(sales) as revanue_by_city
+from complete
+  group by 1
+  order by 2
+),
+
+sum_of_qty as
+(select
+  city,
+  sum(quantity) as jumlah_pesanan
+from complete
+  group by 1
+  order by 2 desc
+),
+
+orang_tajir as
+(select
+  distinct customer_id,
+  sum(sales) as total_pembelian
+from complete
+group by 1
+having sum(sales)>= 500
+  order by 2 
+),
+ 
+  -- Count the number of user per country (mark 5)
+number_of_user as
+(select 
+  distinct city,
+  count(distinct customer_id) as count_user
+from complete
+group by 1
+order by 2 desc
+limit 5
+),
+
+  --write an SQL statment to count the number of orders per country (mark 10)
+number_of_orders as
+(select
+  country,
+  count(distinct order_id) as count_order_id
+from complete
+group by 1
+order by 2
+limit 10
+),
+
+  -- write an SQL statment to find the first order date of each user(mark 10)
+firs_date_user as
+(select
+  customer_name,
+  min(order_date) as minimal_date
+from complete
+group by 1
+order by 2 asc
+),
+
+--write an SQL statment to find the number of user who made their first order eacg country, each a day (mark 25 marks)
+user_first_order as
+(select
+  customer_id,
+  country,
+  min(order_date) as tanggal_pertama,
+  row_number() over (partition by country order by min(order_date) ) as rank_tanggal_pertama
+from complete
+group by 1,2
+
+)
+
+select * from user_first_order; -- blok penutup: di bagian ini kita dapat menampilkan query mana yang kan kita tampilkan, dapat beberapa sekaligus menggunkan kome(,).
+```
